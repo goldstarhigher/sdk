@@ -537,11 +537,36 @@ export class AssetsManager {
         costs.push(...(await this.costsOf(call, sender)))
       }
     }
+    // Staking module
+    if (isCall(tx, 'staking', 'bond')) {
+      const [, amount] = tx.args
+      costs.push(costBuilders.bonding(amount.toBigInt()))
+    }
+    if (isCall(tx, 'staking', 'bondExtra')) {
+      const [amount] = tx.args
+      costs.push(costBuilders.bonding(amount.toBigInt()))
+    }
+    if (isCall(tx, 'staking', 'unbond')) {
+      // Unbonding doesn't require additional funds, just the transaction fee
+    }
+    if (isCall(tx, 'staking', 'withdrawUnbonded')) {
+      // Withdrawing unbonded doesn't require additional funds, just the transaction fee
+    }
+    if (isCall(tx, 'staking', 'nominate')) {
+      // Nominating doesn't require additional funds, just the transaction fee
+    }
+    if (isCall(tx, 'staking', 'chill')) {
+      // Chilling doesn't require additional funds, just the transaction fee
+    }
+    if (isCall(tx, 'staking', 'setPayee')) {
+      // Setting payee doesn't require additional funds, just the transaction fee
+    }
+    if (isCall(tx, 'staking', 'payoutStakers')) {
+      // Payout stakers doesn't require additional funds, just the transaction fee
+    }
     // TODO: Support for multisig pallet (multisig deposits, wrapped calls etc.)
     // TODO: Support for proxy pallet
     // TODO: electionProviderMultiPhase.submit() (requires deposit)
-    // TODO: staking.bond
-    // TODO: staking.bondExtra
     // TODO: utility.asDerivative
     // TODO: vestedTransfer
     return costs

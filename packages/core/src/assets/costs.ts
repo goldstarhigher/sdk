@@ -218,6 +218,16 @@ export const costs = {
     paidFrom: BalanceType.FeeUsable,
     value,
   }),
+  bonding: (value: bigint) => ({
+    kind: CostKind.Bonding,
+    requiresKeepAlive: true,
+    destiny: {
+      type: FundsDestinyType.Deposited,
+      // Bonded funds are locked in the staking system
+    },
+    paidFrom: BalanceType.Transferrable,
+    value,
+  }),
   burn: (value: bigint) => ({
     kind: CostKind.Burn,
     requiresKeepAlive: false,

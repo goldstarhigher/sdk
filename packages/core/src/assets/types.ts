@@ -83,6 +83,8 @@ export enum CostKind {
   ArgoTransfer = 'ArgoTransfer',
   // Budget funding
   BudgetFunding = 'BudgetFunding',
+  // Staking operations
+  Bonding = 'Bonding',
   // Explicit burn
   Burn = 'Burn',
 }

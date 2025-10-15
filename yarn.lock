@@ -4981,6 +4981,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@joystream/sdk-examples-staking@workspace:examples/staking":
+  version: 0.0.0-use.local
+  resolution: "@joystream/sdk-examples-staking@workspace:examples/staking"
+  dependencies:
+    "@joystream/sdk-core": "npm:^1.0.0"
+    tsx: "npm:^4.19.3"
+    typescript: "npm:^5.7.3"
+  languageName: unknown
+  linkType: soft
+
 "@joystream/sdk-examples-tx@workspace:examples/tx":
   version: 0.0.0-use.local
   resolution: "@joystream/sdk-examples-tx@workspace:examples/tx"
