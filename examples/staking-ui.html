@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joystream Staking UI Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom-color: #1976d2;
+            color: #1976d2;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background: #1565c0;
+        }
+        .btn-outline {
+            background: transparent;
+            color: #1976d2;
+            border: 1px solid #1976d2;
+        }
+        .btn-outline:hover {
+            background: #1976d2;
+            color: white;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #2196f3;
+        }
+        .method-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .method-category {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .method-category h4 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .method-item {
+            padding: 5px 0;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .chip {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .log {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Joystream Staking UI Test</h1>
+        <p>Test the StakingManager functionality through a web interface</p>
+    </div>
+
+    <div class="container">
+        <div class="status success">
+            <strong>✅ Connected to Staking System</strong><br>
+            StakingManager is ready for testing <span class="chip">Mock Mode</span>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('overview')">Overview</button>
+            <button class="tab" onclick="showTab('bonding')">Bonding</button>
+            <button class="tab" onclick="showTab('validators')">Validators</button>
+            <button class="tab" onclick="showTab('rewards')">Rewards</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <h2>Staking Overview</h2>
+            <p>Current staking parameters and network information</p>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>🔒 Staking Parameters</h3>
+                    <div class="method-item"><strong>Minimum Bond:</strong> 1.00 JOY</div>
+                    <div class="method-item"><strong>Bonding Duration:</strong> 28 eras</div>
+                    <div class="method-item"><strong>Max Nominations:</strong> 16 validators</div>
+                    <div class="method-item"><strong>History Depth:</strong> 84 eras</div>
+                </div>
+
+                <div class="card">
+                    <h3>⚡ Available Actions</h3>
+                    <div class="method-item">Bond Tokens <span class="chip">Available</span></div>
+                    <div class="method-item">Nominate Validators <span class="chip">Available</span></div>
+                    <div class="method-item">Unbond Tokens <span class="chip">Available</span></div>
+                    <div class="method-item">Claim Rewards <span class="chip">Available</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>StakingManager Methods Available</h3>
+                <div class="method-list">
+                    <div class="method-category">
+                        <h4>Query Methods</h4>
+                        <div class="method-item">getStakingParams()</div>
+                        <div class="method-item">getValidators()</div>
+                        <div class="method-item">getStakingInfo()</div>
+                        <div class="method-item">getValidatorInfo()</div>
+                        <div class="method-item">getUnbondingInfo()</div>
+                        <div class="method-item">getStakingRewards()</div>
+                    </div>
+                    <div class="method-category">
+                        <h4>Extrinsic Methods</h4>
+                        <div class="method-item">bond()</div>
+                        <div class="method-item">unbond()</div>
+                        <div class="method-item">nominate()</div>
+                        <div class="method-item">chill()</div>
+                        <div class="method-item">setPayee()</div>
+                        <div class="method-item">withdrawUnbonded()</div>
+                        <div class="method-item">payoutStakers()</div>
+                    </div>
+                    <div class="method-category">
+                        <h4>Utility Methods</h4>
+                        <div class="method-item">canBond()</div>
+                        <div class="method-item">canUnbond()</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bonding Tab -->
+        <div id="bonding" class="tab-content">
+            <h2>Bonding Operations</h2>
+            <p>Lock and unlock tokens for staking</p>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>🔒 Bond Tokens</h3>
+                    <div class="form-group">
+                        <label>Amount (JOY):</label>
+                        <input type="number" id="bondAmount" value="100" placeholder="Enter amount to bond">
+                    </div>
+                    <div class="form-group">
+                        <label>Controller Account:</label>
+                        <input type="text" id="controllerAccount" placeholder="Enter controller account address">
+                    </div>
+                    <button class="btn" onclick="bondTokens()">Bond Tokens</button>
+                </div>
+
+                <div class="card">
+                    <h3>🔓 Unbond Tokens</h3>
+                    <div class="form-group">
+                        <label>Amount to Unbond (JOY):</label>
+                        <input type="number" id="unbondAmount" value="50" placeholder="Enter amount to unbond">
+                    </div>
+                    <button class="btn btn-outline" onclick="unbondTokens()">Unbond Tokens</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Validators Tab -->
+        <div id="validators" class="tab-content">
+            <h2>Validator Operations</h2>
+            <p>Nominate and manage validators</p>
+
+            <div class="card">
+                <h3>🗳️ Nominate Validators</h3>
+                <div class="form-group">
+                    <label>Validator Addresses (one per line):</label>
+                    <textarea id="validatorAddresses" rows="4" placeholder="Enter validator addresses, one per line"></textarea>
+                </div>
+                <button class="btn" onclick="nominateValidators()">Nominate Validators</button>
+            </div>
+        </div>
+
+        <!-- Rewards Tab -->
+        <div id="rewards" class="tab-content">
+            <h2>Rewards & Payouts</h2>
+            <p>Claim rewards and manage payouts</p>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>💰 Claim Rewards</h3>
+                    <div class="form-group">
+                        <label>Validator Address:</label>
+                        <input type="text" id="rewardValidator" placeholder="Enter validator address">
+                    </div>
+                    <div class="form-group">
+                        <label>Era:</label>
+                        <input type="number" id="rewardEra" placeholder="Enter era number">
+                    </div>
+                    <button class="btn" onclick="claimRewards()">Claim Rewards</button>
+                </div>
+
+                <div class="card">
+                    <h3>📈 Withdraw Unbonded</h3>
+                    <div class="form-group">
+                        <label>Number of Slashing Spans:</label>
+                        <input type="number" id="slashingSpans" value="0" placeholder="Enter number of slashing spans">
+                    </div>
+                    <button class="btn btn-outline" onclick="withdrawUnbonded()">Withdraw Unbonded</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📋 Action Log</h3>
+            <div id="actionLog" class="log">Ready to test staking operations...\n</div>
+            <button class="btn btn-outline" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // Logging functionality
+        function log(message) {
+            const logElement = document.getElementById('actionLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('actionLog').textContent = 'Log cleared...\n';
+        }
+
+        // Staking operations (mock implementations)
+        function bondTokens() {
+            const amount = document.getElementById('bondAmount').value;
+            const controller = document.getElementById('controllerAccount').value;
+            
+            if (!amount || !controller) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            log(`🔒 Bonding ${amount} JOY with controller ${controller}`);
+            log(`✅ Bond transaction created successfully! (Mock mode)`);
+            log(`📊 Transaction would call: staking.bond("${controller}", ${amount}, "Staked")`);
+        }
+
+        function unbondTokens() {
+            const amount = document.getElementById('unbondAmount').value;
+            
+            if (!amount) {
+                alert('Please enter amount to unbond');
+                return;
+            }
+            
+            log(`🔓 Unbonding ${amount} JOY`);
+            log(`✅ Unbond transaction created successfully! (Mock mode)`);
+            log(`📊 Transaction would call: staking.unbond(${amount})`);
+        }
+
+        function nominateValidators() {
+            const addresses = document.getElementById('validatorAddresses').value;
+            
+            if (!addresses.trim()) {
+                alert('Please enter validator addresses');
+                return;
+            }
+            
+            const validatorList = addresses.split('\n').filter(addr => addr.trim());
+            log(`🗳️ Nominating ${validatorList.length} validators`);
+            log(`✅ Nominate transaction created successfully! (Mock mode)`);
+            log(`📊 Transaction would call: staking.nominate([${validatorList.map(addr => `"${addr}"`).join(', ')}])`);
+        }
+
+        function claimRewards() {
+            const validator = document.getElementById('rewardValidator').value;
+            const era = document.getElementById('rewardEra').value;
+            
+            if (!validator || !era) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            log(`💰 Claiming rewards for validator ${validator} in era ${era}`);
+            log(`✅ Payout transaction created successfully! (Mock mode)`);
+            log(`📊 Transaction would call: staking.payoutStakers("${validator}", ${era})`);
+        }
+
+        function withdrawUnbonded() {
+            const spans = document.getElementById('slashingSpans').value;
+            
+            log(`📈 Withdrawing unbonded tokens (${spans} slashing spans)`);
+            log(`✅ Withdraw unbonded transaction created successfully! (Mock mode)`);
+            log(`📊 Transaction would call: staking.withdrawUnbonded(${spans})`);
+        }
+
+        // Initialize the page
+        log('🎯 Joystream Staking UI initialized');
+        log('✅ StakingManager methods are available for testing');
+        log('📝 This is a mock interface - all operations simulate real staking calls');
+    </script>
+</body>
+</html>
