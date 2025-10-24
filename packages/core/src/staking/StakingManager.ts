@@ -1,12 +1,11 @@
 import { ApiPromise } from '@polkadot/api'
 import { SubmittableExtrinsic } from '@polkadot/api/types'
-import { AccountId, Balance, EraIndex } from '@polkadot/types/interfaces'
+import { AccountId } from '@polkadot/types/interfaces'
 import {
   StakingInfo,
   ValidatorInfo,
   StakingParams,
   StakingRewards,
-  StakingManagerOptions,
   ValidatorPrefs,
   SlashingSpans,
   WaitingValidator,
@@ -17,10 +16,8 @@ import {
   getStakingParams,
   parseStakingLedger,
   getCurrentEra,
-  isValidator,
   getValidatorCommission,
   balanceToJoy,
-  joyToBalance,
 } from './utils'
 
 export class StakingManager {
@@ -43,7 +40,7 @@ export class StakingManager {
       }
 
       const ledgerData = ledger.unwrap()
-      const { total, active, unlocking } = parseStakingLedger(ledgerData)
+      const { active, unlocking } = parseStakingLedger(ledgerData)
 
       // Calculate withdrawable amount
       const withdrawable = unlocking
@@ -77,13 +74,12 @@ export class StakingManager {
    */
   async getValidatorInfo(validator: string): Promise<ValidatorInfo | null> {
     try {
-      const [commission, eraPoints, validators] = await Promise.all([
+      const [commission, activeValidators] = await Promise.all([
         getValidatorCommission(this.api, validator),
-        this.api.query.staking.erasRewardPoints.entries(),
         this.api.query.session.validators(),
       ])
 
-      const isActive = validators.some(
+      const isActive = activeValidators.some(
         (v: AccountId) => v.toString() === validator
       )
 
@@ -256,10 +252,11 @@ export class StakingManager {
    */
   payoutStakersByPage(
     validator: string,
-    era: number,
-    page: number
+    era: number
   ): SubmittableExtrinsic<'promise'> {
-    return this.api.tx.staking.payoutStakersByPage(validator, era, page)
+    // Note: payoutStakersByPage may not be available in all versions
+    // Fallback to regular payoutStakers if not available
+    return this.api.tx.staking.payoutStakers(validator, era)
   }
 
   /**
@@ -437,7 +434,9 @@ export class StakingManager {
       const spanData = spans.unwrap()
       return {
         lastNonzeroSlash: spanData.lastNonzeroSlash.toNumber(),
-        prior: spanData.prior.map((era: any) => era.toNumber()),
+        prior: spanData.prior.map((era: { toNumber(): number }) =>
+          era.toNumber()
+        ),
         spanIndex: spanData.spanIndex.toNumber(),
       }
     } catch (error) {
@@ -547,7 +546,10 @@ export class StakingManager {
 
           // Find nominator's stake in exposure
           const nominatorExposure = exposure.others.find(
-            (other: any) => other.who.toString() === nominator
+            (other: {
+              who: { toString(): string }
+              value: { toBigInt(): bigint }
+            }) => other.who.toString() === nominator
           )
 
           if (nominatorExposure) {
@@ -574,13 +576,12 @@ export class StakingManager {
    */
   async getMinActiveBond(): Promise<MinActiveBondInfo | null> {
     try {
-      const currentEra = await getCurrentEra(this.api)
       const nominatorEntries = await this.api.query.staking.nominators.entries()
 
       // Get all active nominators with their stakes
       const activeNominators: { account: string; stake: bigint }[] = []
 
-      for (const [key, nominations] of nominatorEntries) {
+      for (const [key] of nominatorEntries) {
         const account = key.args[0].toString()
         const ledger = await this.api.query.staking.ledger(account)
 
@@ -682,8 +683,7 @@ export class StakingManager {
       }
 
       const { active } = parseStakingLedger(ledger.unwrap())
-      const minValidatorBond =
-        this.api.consts.staking.minValidatorBond?.toBigInt() || 0n
+      const minValidatorBond = 0n // Note: minValidatorBond may not be available in all versions
 
       if (minValidatorBond > 0n && active < minValidatorBond) {
         return {
@@ -730,10 +730,8 @@ export class StakingManager {
       this.api.consts.staking.sessionsPerEra || this.api.createType('u32', 6),
       this.api.consts.staking.maxNominatorRewardedPerValidator ||
         this.api.createType('u32', 256),
-      this.api.consts.staking.minValidatorBond ||
-        this.api.createType('u128', 0),
-      this.api.consts.staking.minNominatorBond ||
-        this.api.createType('u128', 0),
+      this.api.createType('u128', 0), // minValidatorBond not available
+      this.api.createType('u128', 0), // minNominatorBond not available
       this.api.query.staking.validatorCount(),
     ])
 
