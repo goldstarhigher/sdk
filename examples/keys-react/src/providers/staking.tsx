@@ -37,29 +37,30 @@ export function StakingProvider({ children }: StakingProviderProps) {
   const connect = async () => {
     try {
       setError(null)
+      // Connect to real Joystream network
+      const { createApi } = await import('@joystream/sdk-core/chain')
 
-      // For demo purposes, we'll use a mock connection
-      // In a real app, you'd connect to an actual Joystream node
-      console.log('🔌 Connecting to Joystream network...')
+      // Choose your network endpoint
+      const endpoint =
+        process.env.REACT_APP_JOYSTREAM_ENDPOINT || 'wss://rpc.joystream.org' // Mainnet
+      // const endpoint = 'wss://testnet-rpc.joystream.org' // Testnet
+      // const endpoint = 'ws://localhost:9944' // Local node
 
-      // Create mock API for demonstration
-      const mockApi = {} as ApiPromise
-      const mockStaking = new StakingManager(mockApi)
-      const mockTx = keyManager ? new TxManager(mockApi, keyManager) : null
+      const realApi = await createApi(endpoint)
+      const realStaking = new StakingManager(realApi)
+      const realTx = keyManager ? new TxManager(realApi, keyManager) : null
 
-      setApi(mockApi)
-      setStaking(mockStaking)
-      setTx(mockTx)
+      setApi(realApi)
+      setStaking(realStaking)
+      setTx(realTx)
       setIsConnected(true)
-
-      console.log('✅ Connected to Joystream network (mock mode)')
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Unknown connection error'
       setError(errorMessage)
       setIsConnected(false)
 
-      console.error('❌ Failed to connect:', errorMessage)
+      // Error handled by setError
     }
   }
 
@@ -74,10 +75,8 @@ export function StakingProvider({ children }: StakingProviderProps) {
       setTx(null)
       setIsConnected(false)
       setError(null)
-
-      console.log('🔌 Disconnected from Joystream network')
     } catch (err) {
-      console.error('❌ Error during disconnect:', err)
+      // Error during disconnect - handled silently
     }
   }
 

@@ -80,15 +80,66 @@ export interface StakingRewards {
   nominatorRewards: bigint
 }
 
+export interface ValidatorPrefs {
+  /** Commission rate (0-100) */
+  commission: number
+  /** Whether validator is blocked from nomination */
+  blocked?: boolean
+}
+
+export interface SlashingSpans {
+  /** Last non-zero slash era */
+  lastNonzeroSlash: number
+  /** Prior slashing eras */
+  prior: number[]
+  /** Span index */
+  spanIndex: number
+}
+
+export interface WaitingValidator {
+  /** Validator account */
+  account: string
+  /** Commission rate */
+  commission: number
+  /** Total stake */
+  totalStake: bigint
+  /** Own stake */
+  ownStake: bigint
+}
+
+export interface NominatorTarget {
+  /** Target validator address */
+  validator: string
+  /** Nominator's stake with this validator */
+  stake: bigint
+  /** Whether validator is active */
+  isActive: boolean
+}
+
+export interface MinActiveBondInfo {
+  /** Minimum bond amount to be in active set */
+  minBond: bigint
+  /** Number of active nominators */
+  activeNominators: number
+  /** Maximum nominators allowed */
+  maxNominators: number
+}
+
 export type StakingExtrinsic =
   | 'bond'
   | 'bondExtra'
   | 'unbond'
+  | 'rebond'
   | 'withdrawUnbonded'
   | 'nominate'
   | 'chill'
+  | 'validate'
   | 'setPayee'
+  | 'setController'
   | 'payoutStakers'
+  | 'payoutStakersByPage'
+  | 'rebag'
+  | 'putInFrontOf'
 
 export interface StakingManagerOptions {
   /** API instance */

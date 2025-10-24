@@ -7,6 +7,11 @@ import {
   StakingParams,
   StakingRewards,
   StakingManagerOptions,
+  ValidatorPrefs,
+  SlashingSpans,
+  WaitingValidator,
+  NominatorTarget,
+  MinActiveBondInfo,
 } from './types'
 import {
   getStakingParams,
@@ -176,6 +181,13 @@ export class StakingManager {
   }
 
   /**
+   * Create rebond extrinsic (rebond previously unbonded tokens)
+   */
+  rebond(amount: bigint): SubmittableExtrinsic<'promise'> {
+    return this.api.tx.staking.rebond(amount)
+  }
+
+  /**
    * Create withdraw unbonded extrinsic
    */
   withdrawUnbonded(numSlashingSpans?: number): SubmittableExtrinsic<'promise'> {
@@ -197,6 +209,30 @@ export class StakingManager {
   }
 
   /**
+   * Create validate extrinsic (declare intention to validate)
+   * @param commission Commission percentage (0-100)
+   * @param blocked Whether to block nominations
+   */
+  validate(
+    commission: number,
+    blocked: boolean = false
+  ): SubmittableExtrinsic<'promise'> {
+    // Commission is in parts per billion (0-1000000000)
+    const commissionPerbill = Math.floor((commission / 100) * 1_000_000_000)
+    return this.api.tx.staking.validate({
+      commission: commissionPerbill,
+      blocked,
+    })
+  }
+
+  /**
+   * Create set controller extrinsic
+   */
+  setController(controller: string): SubmittableExtrinsic<'promise'> {
+    return this.api.tx.staking.setController(controller)
+  }
+
+  /**
    * Create set payee extrinsic
    */
   setPayee(
@@ -213,6 +249,46 @@ export class StakingManager {
     era: number
   ): SubmittableExtrinsic<'promise'> {
     return this.api.tx.staking.payoutStakers(validator, era)
+  }
+
+  /**
+   * Create payout stakers by page extrinsic
+   */
+  payoutStakersByPage(
+    validator: string,
+    era: number,
+    page: number
+  ): SubmittableExtrinsic<'promise'> {
+    return this.api.tx.staking.payoutStakersByPage(validator, era, page)
+  }
+
+  /**
+   * Create rebag extrinsic (move account to correct bag)
+   */
+  rebag(account: string): SubmittableExtrinsic<'promise'> {
+    return this.api.tx.bagsList.rebag(account)
+  }
+
+  /**
+   * Create put in front of extrinsic (reposition within bag)
+   */
+  putInFrontOf(lighter: string): SubmittableExtrinsic<'promise'> {
+    return this.api.tx.bagsList.putInFrontOf(lighter)
+  }
+
+  /**
+   * Create batch transaction for bond and nominate
+   */
+  bondAndNominate(
+    controller: string,
+    amount: bigint,
+    targets: string[],
+    payee: 'Staked' | 'Stash' | 'Controller' | string = 'Staked'
+  ): SubmittableExtrinsic<'promise'> {
+    return this.api.tx.utility.batch([
+      this.bond(controller, controller, amount, payee),
+      this.nominate(targets),
+    ])
   }
 
   /**
@@ -344,6 +420,333 @@ export class StakingManager {
         canUnbond: false,
         reason: `Error checking unbond eligibility: ${error}`,
       }
+    }
+  }
+
+  /**
+   * Get slashing spans for an account
+   */
+  async getSlashingSpans(stash: string): Promise<SlashingSpans | null> {
+    try {
+      const spans = await this.api.query.staking.slashingSpans(stash)
+
+      if (!spans.isSome) {
+        return null
+      }
+
+      const spanData = spans.unwrap()
+      return {
+        lastNonzeroSlash: spanData.lastNonzeroSlash.toNumber(),
+        prior: spanData.prior.map((era: any) => era.toNumber()),
+        spanIndex: spanData.spanIndex.toNumber(),
+      }
+    } catch (error) {
+      console.error('Error getting slashing spans:', error)
+      return null
+    }
+  }
+
+  /**
+   * Get validator preferences
+   */
+  async getValidatorPrefs(validator: string): Promise<ValidatorPrefs | null> {
+    try {
+      const prefs = await this.api.query.staking.validators(validator)
+
+      return {
+        commission: prefs.commission.toNumber() / 10 ** 7, // Convert from Perbill (parts per billion) to percentage
+        blocked: prefs.blocked?.isTrue || false,
+      }
+    } catch (error) {
+      console.error('Error getting validator preferences:', error)
+      return null
+    }
+  }
+
+  /**
+   * Get waiting validators (validators not in active set)
+   */
+  async getWaitingValidators(): Promise<WaitingValidator[]> {
+    try {
+      const [allValidatorEntries, activeValidators, currentEra] =
+        await Promise.all([
+          this.api.query.staking.validators.entries(),
+          this.api.query.session.validators(),
+          getCurrentEra(this.api),
+        ])
+
+      const activeSet = new Set(
+        activeValidators.map((v: AccountId) => v.toString())
+      )
+
+      const waitingValidators: WaitingValidator[] = []
+
+      for (const [key, prefs] of allValidatorEntries) {
+        const account = key.args[0].toString()
+
+        // Skip if in active set
+        if (activeSet.has(account)) continue
+
+        // Get exposure for current era
+        const exposure = await this.api.query.staking.erasStakers(
+          currentEra,
+          account
+        )
+
+        waitingValidators.push({
+          account,
+          commission: prefs.commission.toNumber() / 10 ** 7,
+          totalStake: exposure.total.toBigInt(),
+          ownStake: exposure.own.toBigInt(),
+        })
+      }
+
+      return waitingValidators.sort((a, b) =>
+        a.totalStake > b.totalStake ? -1 : 1
+      )
+    } catch (error) {
+      console.error('Error getting waiting validators:', error)
+      return []
+    }
+  }
+
+  /**
+   * Get current nominations with exposure information
+   */
+  async getNominatorTargets(
+    nominator: string
+  ): Promise<NominatorTarget[] | null> {
+    try {
+      const [nominations, activeValidators, currentEra] = await Promise.all([
+        this.api.query.staking.nominators(nominator),
+        this.api.query.session.validators(),
+        getCurrentEra(this.api),
+      ])
+
+      if (!nominations.isSome) {
+        return null
+      }
+
+      const targets = nominations.unwrap().targets
+      const activeSet = new Set(
+        activeValidators.map((v: AccountId) => v.toString())
+      )
+
+      const targetInfo: NominatorTarget[] = []
+
+      for (const target of targets) {
+        const targetAddr = target.toString()
+        const isActive = activeSet.has(targetAddr)
+
+        let stake = 0n
+        if (isActive) {
+          const exposure = await this.api.query.staking.erasStakers(
+            currentEra,
+            targetAddr
+          )
+
+          // Find nominator's stake in exposure
+          const nominatorExposure = exposure.others.find(
+            (other: any) => other.who.toString() === nominator
+          )
+
+          if (nominatorExposure) {
+            stake = nominatorExposure.value.toBigInt()
+          }
+        }
+
+        targetInfo.push({
+          validator: targetAddr,
+          stake,
+          isActive,
+        })
+      }
+
+      return targetInfo
+    } catch (error) {
+      console.error('Error getting nominator targets:', error)
+      return null
+    }
+  }
+
+  /**
+   * Get minimum active bond (minimum to be in active nominator set)
+   */
+  async getMinActiveBond(): Promise<MinActiveBondInfo | null> {
+    try {
+      const currentEra = await getCurrentEra(this.api)
+      const nominatorEntries = await this.api.query.staking.nominators.entries()
+
+      // Get all active nominators with their stakes
+      const activeNominators: { account: string; stake: bigint }[] = []
+
+      for (const [key, nominations] of nominatorEntries) {
+        const account = key.args[0].toString()
+        const ledger = await this.api.query.staking.ledger(account)
+
+        if (ledger.isSome) {
+          const { active } = parseStakingLedger(ledger.unwrap())
+          activeNominators.push({ account, stake: active })
+        }
+      }
+
+      // Sort by stake descending
+      activeNominators.sort((a, b) => (a.stake > b.stake ? -1 : 1))
+
+      const maxNominators =
+        this.api.consts.staking.maxNominatorRewardedPerValidator?.toNumber() ||
+        256
+
+      const minActiveBond =
+        activeNominators.length > 0
+          ? activeNominators[
+              Math.min(activeNominators.length - 1, maxNominators - 1)
+            ].stake
+          : 0n
+
+      return {
+        minBond: minActiveBond,
+        activeNominators: activeNominators.length,
+        maxNominators,
+      }
+    } catch (error) {
+      console.error('Error getting min active bond:', error)
+      return null
+    }
+  }
+
+  /**
+   * Check if account can nominate specific targets
+   */
+  async canNominate(
+    account: string,
+    targets: string[]
+  ): Promise<{ canNominate: boolean; reason?: string }> {
+    try {
+      const params = await this.getStakingParams()
+
+      if (targets.length === 0) {
+        return {
+          canNominate: false,
+          reason: 'No targets specified',
+        }
+      }
+
+      if (targets.length > params.maxNominations) {
+        return {
+          canNominate: false,
+          reason: `Too many nominations. Maximum is ${params.maxNominations}, got ${targets.length}`,
+        }
+      }
+
+      // Check if account has bonded stake
+      const ledger = await this.api.query.staking.ledger(account)
+      if (!ledger.isSome) {
+        return {
+          canNominate: false,
+          reason: 'Account has no bonded stake',
+        }
+      }
+
+      return { canNominate: true }
+    } catch (error) {
+      return {
+        canNominate: false,
+        reason: `Error checking nomination eligibility: ${error}`,
+      }
+    }
+  }
+
+  /**
+   * Check if account can become a validator
+   */
+  async canValidate(
+    account: string,
+    commission: number
+  ): Promise<{ canValidate: boolean; reason?: string }> {
+    try {
+      if (commission < 0 || commission > 100) {
+        return {
+          canValidate: false,
+          reason: 'Commission must be between 0 and 100',
+        }
+      }
+
+      // Check if account has bonded stake
+      const ledger = await this.api.query.staking.ledger(account)
+      if (!ledger.isSome) {
+        return {
+          canValidate: false,
+          reason: 'Account has no bonded stake',
+        }
+      }
+
+      const { active } = parseStakingLedger(ledger.unwrap())
+      const minValidatorBond =
+        this.api.consts.staking.minValidatorBond?.toBigInt() || 0n
+
+      if (minValidatorBond > 0n && active < minValidatorBond) {
+        return {
+          canValidate: false,
+          reason: `Insufficient bonded stake. Minimum is ${balanceToJoy(minValidatorBond)} JOY, you have ${balanceToJoy(active)} JOY`,
+        }
+      }
+
+      return { canValidate: true }
+    } catch (error) {
+      return {
+        canValidate: false,
+        reason: `Error checking validation eligibility: ${error}`,
+      }
+    }
+  }
+
+  /**
+   * Get staking constants
+   */
+  async getStakingConstants(): Promise<{
+    bondingDuration: number
+    maxNominations: number
+    historyDepth: number
+    sessionsPerEra: number
+    maxNominatorRewardedPerValidator: number
+    minValidatorBond: bigint
+    minNominatorBond: bigint
+    validatorCount: number
+  }> {
+    const [
+      bondingDuration,
+      maxNominations,
+      historyDepth,
+      sessionsPerEra,
+      maxNominatorRewardedPerValidator,
+      minValidatorBond,
+      minNominatorBond,
+      validatorCount,
+    ] = await Promise.all([
+      this.api.consts.staking.bondingDuration,
+      this.api.consts.staking.maxNominations,
+      this.api.consts.staking.historyDepth,
+      this.api.consts.staking.sessionsPerEra || this.api.createType('u32', 6),
+      this.api.consts.staking.maxNominatorRewardedPerValidator ||
+        this.api.createType('u32', 256),
+      this.api.consts.staking.minValidatorBond ||
+        this.api.createType('u128', 0),
+      this.api.consts.staking.minNominatorBond ||
+        this.api.createType('u128', 0),
+      this.api.query.staking.validatorCount(),
+    ])
+
+    return {
+      bondingDuration: bondingDuration.toNumber(),
+      maxNominations: maxNominations.toNumber(),
+      historyDepth: historyDepth.toNumber(),
+      sessionsPerEra: sessionsPerEra.toNumber(),
+      maxNominatorRewardedPerValidator:
+        maxNominatorRewardedPerValidator.toNumber(),
+      minValidatorBond: minValidatorBond.toBigInt(),
+      minNominatorBond: minNominatorBond.toBigInt(),
+      validatorCount: validatorCount.toNumber(),
     }
   }
 }
