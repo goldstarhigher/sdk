@@ -214,7 +214,7 @@ describe('StakingManager', () => {
     })
 
     test('should create payoutStakersByPage extrinsic', () => {
-      const tx = staking.payoutStakersByPage('validator', 100, 0)
+      const tx = staking.payoutStakersByPage('validator', 100)
 
       expect(tx).toBeDefined()
       expect(tx.method.section).toBe('staking')
