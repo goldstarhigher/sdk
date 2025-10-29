@@ -11,7 +11,7 @@ This guide provides step-by-step instructions to integrate the real Joystream SD
 
 ### Mock Implementation (Current)
 
-**Location:** `E:\work\joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts`
+**Location:** `joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts`
 
 The current implementation uses mock methods that return hardcoded data:
 
@@ -24,7 +24,7 @@ The current implementation uses mock methods that return hardcoded data:
 The Joystream SDK has a fully implemented staking module:
 
 - **Package:** `@joystream/sdk-core`
-- **Location:** `E:\work\joystream\sdk\packages\core\src\staking\StakingManager.ts`
+- **Location:** `joystream\sdk\packages\core\src\staking\StakingManager.ts`
 - **Status:** ✅ **PRODUCTION READY** - All features implemented and tested
 - **Features:** 15 extrinsics, 12+ queries, 4 validation helpers
 - **Test Coverage:** 35+ test cases passing
@@ -36,7 +36,7 @@ The Joystream SDK has a fully implemented staking module:
 ### Step 1: Add Import
 
 ```typescript
-// At top of file: E:\work\joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts
+// At top of file: joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts
 import { StakingManager } from '@joystream/sdk-core/staking'
 ```
 
@@ -61,7 +61,7 @@ That's it! The existing hooks (`useStakingQueries`, `useStakingValidation`, `use
 First, ensure you have the latest SDK package.
 
 ```bash
-cd E:\work\joystream\pioneer
+cd joystream\pioneer
 yarn list @joystream/sdk-core
 ```
 
@@ -72,17 +72,17 @@ If not installed or outdated:
 yarn add @joystream/sdk-core@latest
 
 # OR link local development version
-cd E:\work\joystream\sdk
+cd joystream\sdk
 yarn build
 yarn link
 
-cd E:\work\joystream\pioneer\packages\ui
+cd joystream\pioneer\packages\ui
 yarn link @joystream/sdk-core
 ```
 
 ### Step 2: Update useStakingSDK Hook
 
-Open the file: `E:\work\joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts`
+Open the file: `joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts`
 
 #### Current Code (Lines 1-94):
 
@@ -197,14 +197,14 @@ They will automatically use the real SDK methods.
 #### 4.1. Start Local Node (Optional but Recommended)
 
 ```bash
-cd E:\work\joystream\sdk\test-setup
+cd joystream\sdk\test-setup
 ./up.sh
 ```
 
 #### 4.2. Start Pioneer UI
 
 ```bash
-cd E:\work\joystream\pioneer\packages\ui
+cd joystream\pioneer\packages\ui
 yarn dev
 ```
 
@@ -259,7 +259,7 @@ If a method is called but doesn't exist in the real SDK:
 Here's the complete updated file:
 
 ```typescript
-// E:\work\joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts
+// joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts
 
 import { useMemo } from 'react'
 import { StakingManager } from '@joystream/sdk-core/staking'
@@ -615,7 +615,7 @@ After integration, test these features:
 **Solution:**
 
 ```bash
-cd E:\work\joystream\pioneer
+cd joystream\pioneer
 yarn add @joystream/sdk-core@latest
 # or
 yarn link @joystream/sdk-core
@@ -787,7 +787,7 @@ Need help? Here's how to get support:
 
 ### What to Change
 
-**File:** `E:\work\joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts`
+**File:** `joystream\pioneer\packages\ui\src\validators\hooks\useStakingSDK.ts`
 
 **Lines to Change:** 2 (import + instantiation)
 
@@ -823,12 +823,12 @@ const staking = useMemo(() => {
 
 ```bash
 # 1. Build SDK
-cd E:\work\joystream\sdk
+cd joystream\sdk
 yarn build
 
 # 2. Link to Pioneer (development)
 yarn link
-cd E:\work\joystream\pioneer\packages\ui
+cd joystream\pioneer\packages\ui
 yarn link @joystream/sdk-core
 
 # 3. Start Pioneer
